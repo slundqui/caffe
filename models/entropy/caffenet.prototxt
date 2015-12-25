@@ -1,249 +1,321 @@
-name: "CaffeNet"
-#input: "data"
-#input_shape {
-#  dim: 10
-#  dim: 3
-#  dim: 227
-#  dim: 227
-#}
+#   ___      ___  __   __   __                ___       ___ ___ 
+#  |__  |\ |  |  |__) /  \ |__) \ /     |    |__  |\ | |__   |  
+#  |___ | \|  |  |  \ \__/ |     |  ___ |___ |___ | \| |___  |  
+#                                                               
+
+name: "LeNet"
+
 layer {
-   name: "cifar"
+   name: "mnist"
    type: "Data"
-   top: "data"
-   top: "label"
    include {
       phase: TRAIN
    }
    transform_param {
-      mean_file: "/Users/slundquist/workspace/caffe/examples/cifar10/mean.binaryproto"
+      scale: 0.00390625
    }
    data_param {
-      source: "/Users/slundquist/workspace/caffe/examples/cifar10/cifar10_train_lmdb"
+      source: "/Users/slundquist/workspace/caffe/examples/mnist/mnist_train_lmdb"
+      backend: LMDB
+      batch_size: 64
+   }
+
+   top: "data"
+   top: "label"
+}
+
+layer {
+   name: "mnist"
+   type: "Data"
+   top: "data"
+   top: "label"
+   include {
+      phase: TEST
+   }
+   transform_param {
+      scale: 0.00390625
+   }
+   data_param {
+      source: "examples/mnist/mnist_test_lmdb"
       batch_size: 100
       backend: LMDB
    }
 }
+
+#Supervised network
 layer {
-  name: "conv1"
-  type: "Convolution"
-  bottom: "data"
-  top: "conv1"
-  convolution_param {
-    num_output: 96
-    kernel_size: 11
-    stride: 4
-  }
+   name: "supConv1"
+   type: "Convolution"
+   param { 
+      #name: "convweights"
+      decay_mult: 0
+      lr_mult: 0 
+   }
+   param { 
+      #name: "convbias"
+      decay_mult: 0
+      lr_mult: 0 
+   }
+   convolution_param {
+      num_output: 20
+      kernel_size: 5
+      stride: 1
+      weight_filler {
+         type: "xavier"
+      }
+      bias_filler {
+         type: "constant"
+      }
+   }
+   bottom: "data"
+   top: "supConv1"
 }
+
 layer {
-  name: "relu1"
-  type: "ReLU"
-  bottom: "conv1"
-  top: "conv1"
+   name: "supPool1"
+   type: "Pooling"
+   pooling_param {
+      kernel_size: 2
+      stride: 2
+      pool: MAX
+   }
+   bottom: "supConv1"
+   top: "supPool1"
 }
+
 layer {
-  name: "pool1"
-  type: "Pooling"
-  bottom: "conv1"
-  top: "pool1"
-  pooling_param {
-    pool: MAX
-    kernel_size: 3
-    stride: 2
-  }
-}
-layer {
-  name: "norm1"
-  type: "LRN"
-  bottom: "pool1"
-  top: "norm1"
-  lrn_param {
-    local_size: 5
-    alpha: 0.0001
-    beta: 0.75
-  }
-}
-layer {
-  name: "conv2"
-  type: "Convolution"
-  bottom: "norm1"
-  top: "conv2"
-  convolution_param {
-    num_output: 256
-    pad: 2
-    kernel_size: 5
-    group: 2
-  }
-}
-layer {
-  name: "relu2"
-  type: "ReLU"
-  bottom: "conv2"
-  top: "conv2"
-}
-layer {
-  name: "pool2"
-  type: "Pooling"
-  bottom: "conv2"
-  top: "pool2"
-  pooling_param {
-    pool: MAX
-    kernel_size: 3
-    stride: 2
-  }
-}
-layer {
-  name: "norm2"
-  type: "LRN"
-  bottom: "pool2"
-  top: "norm2"
-  lrn_param {
-    local_size: 5
-    alpha: 0.0001
-    beta: 0.75
-  }
-}
-layer {
-  name: "conv3"
-  type: "Convolution"
-  bottom: "norm2"
-  top: "conv3"
-  convolution_param {
-    num_output: 384
-    pad: 1
-    kernel_size: 3
-  }
-}
-layer {
-  name: "relu3"
-  type: "ReLU"
-  bottom: "conv3"
-  top: "conv3"
-}
-layer {
-  name: "conv4"
-  type: "Convolution"
-  bottom: "conv3"
-  top: "conv4"
-  convolution_param {
-    num_output: 384
-    pad: 1
-    kernel_size: 3
-    group: 2
-  }
-}
-layer {
-  name: "relu4"
-  type: "ReLU"
-  bottom: "conv4"
-  top: "conv4"
-}
-layer {
-  name: "conv5"
-  type: "Convolution"
-  bottom: "conv4"
-  top: "conv5"
-  convolution_param {
-    num_output: 256
-    pad: 1
-    kernel_size: 3
-    group: 2
-  }
-}
-layer {
-  name: "relu5"
-  type: "ReLU"
-  bottom: "conv5"
-  top: "conv5"
-}
-layer {
-  name: "pool5"
-  type: "Pooling"
-  bottom: "conv5"
-  top: "pool5"
-  pooling_param {
-    pool: MAX
-    kernel_size: 3
-    stride: 2
-  }
-}
-layer {
-  name: "fc6"
+  name: "supIp1"
   type: "InnerProduct"
-  bottom: "pool5"
-  top: "fc6"
+   param { 
+      #name: "ip1weights"
+      decay_mult: 0
+      lr_mult: 0 
+   }
+   param { 
+      #name: "ip1bias"
+      decay_mult: 0
+      lr_mult: 0 
+   }
   inner_product_param {
-    num_output: 4096
+    num_output: 500
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
   }
+  bottom: "supPool1"
+  top: "supIp1"
 }
+
 layer {
-  name: "relu6"
+  name: "supRelu1"
   type: "ReLU"
-  bottom: "fc6"
-  top: "fc6"
+  bottom: "supIp1"
+  top: "supIp1"
 }
+
 layer {
-  name: "drop6"
-  type: "Dropout"
-  bottom: "fc6"
-  top: "fc6"
-  dropout_param {
-    dropout_ratio: 0.5
-  }
-}
-layer {
-  name: "fc7"
+  name: "supIp2"
   type: "InnerProduct"
-  bottom: "fc6"
-  top: "fc7"
-  inner_product_param {
-    num_output: 4096
+  param { 
+     #name: "ip2weights"
+     decay_mult: 0
+     lr_mult: 0 
   }
+  param { 
+     #name: "ip2bias"
+     decay_mult: 0
+     lr_mult: 0 
+  }
+  inner_product_param {
+    num_output: 10
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+  bottom: "supIp1"
+  top: "supIp2"
 }
+
 layer {
-  name: "relu7"
+  name: "supIp3"
+  type: "InnerProduct"
+  param { 
+     decay_mult: 0
+     lr_mult: 0 
+  }
+  param { 
+     decay_mult: 0
+     lr_mult: 0 
+  }
+  inner_product_param {
+    num_output: 10
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+  bottom: "supIp2"
+  top: "supIp3"
+}
+
+layer {
+   name: "supAccuracy"
+   type: "Accuracy"
+   bottom: "supIp3"
+   bottom: "label"
+   top: "supAccuracy"
+   include {
+      phase: TEST
+   }
+}
+
+layer {
+  name: "supLoss"
+  type: "SoftmaxWithLoss"
+  bottom: "supIp3"
+  bottom: "label"
+}
+
+
+#Entropy network
+layer {
+   name: "entConv1"
+   type: "Convolution"
+   param { 
+      name: "convweights"
+      decay_mult: 1
+      lr_mult: 2 
+   }
+   param { 
+      name: "convbias"
+      decay_mult: 0
+      lr_mult: 3 
+   }
+   convolution_param {
+      num_output: 20
+      kernel_size: 5
+      stride: 1
+      weight_filler {
+         type: "xavier"
+      }
+      bias_filler {
+         type: "constant"
+      }
+   }
+   bottom: "data"
+   top: "entConv1"
+}
+
+layer {
+   name: "entPool1"
+   type: "Pooling"
+   pooling_param {
+      kernel_size: 2
+      stride: 2
+      pool: MAX
+   }
+   bottom: "entConv1"
+   top: "entPool1"
+}
+
+layer {
+  name: "entIp1"
+  type: "InnerProduct"
+   param { 
+      name: "ip1weights"
+      decay_mult: 1
+      lr_mult: 2 
+   }
+   param { 
+      name: "ip1bias"
+      decay_mult: 0
+      lr_mult: 3 
+   }
+  inner_product_param {
+    num_output: 500
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+  bottom: "entPool1"
+  top: "entIp1"
+}
+
+layer {
+  name: "entRelu1"
   type: "ReLU"
-  bottom: "fc7"
-  top: "fc7"
+  bottom: "entIp1"
+  top: "entIp1"
 }
+
 layer {
-  name: "drop7"
-  type: "Dropout"
-  bottom: "fc7"
-  top: "fc7"
-  dropout_param {
-    dropout_ratio: 0.5
-  }
-}
-layer {
-  name: "fc8"
+  name: "entIp2"
   type: "InnerProduct"
-  bottom: "fc7"
-  top: "fc8"
-  inner_product_param {
-    num_output: 1000
+  param { 
+     name: "ip2weights"
+     decay_mult: 1
+     lr_mult: 2 
   }
+  param { 
+     name: "ip2bias"
+     decay_mult: 0
+     lr_mult: 3 
+  }
+  inner_product_param {
+    num_output: 10
+    weight_filler {
+      type: "xavier"
+    }
+    bias_filler {
+      type: "constant"
+    }
+  }
+  bottom: "entIp1"
+  top: "entIp2"
 }
-layer {
-   name: "prob"
-   type: "Softmax"
-   bottom: "fc8"
-   top: "prob"
-}
+
 layer{
    type: "Python"
    name: "entropyCode"
-   top: "en1"
-   bottom: "fc8"
+   bottom: "entIp2"
+   top: "entEn1"
    python_param{
       module: 'pyloss'
       layer: 'EntropyCode'
-      #beta: .001
+      beta: .1
    }
 }
+
 layer {
-   name: "loss"
-   type: "SoftmaxWithLoss"
-   bottom: "prob"
-   bottom: "label"
-   top: "loss"
+  name: "entSoftIp"
+  type: "Softmax"
+  bottom: "entIp2"
+  top: "entSoftIp"
 }
+
+layer {
+  name: "entSoftEn"
+  type: "Softmax"
+  bottom: "entEn1"
+  top: "entSoftEn"
+}
+
+layer {
+  name: "entLoss"
+  type: "EuclideanLoss"
+  bottom: "entSoftIp"
+  bottom: "entSoftEn"
+  top: "l2_error"
+}
+
